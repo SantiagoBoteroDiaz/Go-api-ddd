@@ -80,3 +80,9 @@ func (s *OrderService) ConfirmOrder(
 
 	return existingOrder, nil
 }
+
+// obtener todos los productos 
+
+func(s *OrderService) GetAllOrders(ctx context.Context) ([]*domain.Order, error){
+	return s.repository.FindAll(ctx)
+}

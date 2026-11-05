@@ -161,5 +161,53 @@ func (r *PostgresOrderRepository) Update(
 	return nil
 }
 
+func (r *PostgresOrderRepository) FindAll(
+	ctx context.Context,
+) ([]*order.Order, error){
+	rows, err := r.db.Query(ctx, `
+		SELECT id
+        FROM orders
+        ORDER BY id DESC
+	`)
+
+	if err != nil {
+		return nil, fmt.Errorf("consultando pedidos: %w", err)
+	}
+
+	var ids []int64 
+
+	for rows.Next() { 
+		var id int64
+
+		if err := rows.Scan(&id); err != nil{
+			rows.Close()
+			return nil, fmt.Errorf("Leyendo id del pedido: %w", err)
+		
+		}
+		ids = append(ids, id)
+	}
+
+	if err:= rows.Err(); err !=  nil {
+		rows.Close()
+		return nil, fmt.Errorf("Recorriendo pedidos: %w", err)
+	}
+
+	rows.Close()
+
+	orders := make([]*order.Order, 0, len(ids)) 
+
+	for _, id := range ids {
+		existingOrder, err := r.FindByID(ctx, id)
+
+		if err != nil {
+			return nil, err
+		}
+
+		orders = append(orders, existingOrder)
+	}
+
+	return orders, nil
+}
+
 // Verifica en compilación que implementamos la interfaz.
 var _ order.OrderRepository = (*PostgresOrderRepository)(nil)

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"net/http"
 	"strconv"
 	"time"
 
@@ -170,4 +171,37 @@ func respondError(c *gin.Context, err error) {
 			},
 		})
 	}
+}
+
+func (h *OrderHandler) GetAllOrders(c *gin.Context) {
+	orders, err := h.service.GetAllOrders(c.Request.Context())
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"Error" : "No se pudieron consultar los pedidos", 
+		})
+		return
+	}
+
+	response := make([]gin.H, 0, len(orders))
+
+	for _, o := range orders { 
+		items := make([]gin.H, 0)
+
+		for _, item := range o.Items() {
+            items = append(items, gin.H{
+                "product_id": item.ProductID(),
+                "quantity":   item.Quantity(),
+            })
+        }
+
+		response = append(response, gin.H{
+			"id":         o.ID(),
+            "status":     o.Status(),
+            "created_at": o.CreatedAt(),
+            "items":      items,
+		})
+	}
+	
+	c.JSON(http.StatusOK, response) 
 }

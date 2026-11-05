@@ -1,9 +1,14 @@
+
 package order
 
 import (
 	"errors"
 	"time"
 )
+
+
+// ORDER STATUS
+
 
 type OrderStatus string
 
@@ -12,11 +17,16 @@ const (
 	StatusConfirmed OrderStatus = "CONFIRMED"
 )
 
+
+// ORDER ITEM
+
+
 type OrderItem struct {
 	productID int64
 	quantity  int
 }
 
+// Constructor
 func NewOrderItem(productID int64, quantity int) (OrderItem, error) {
 	if productID <= 0 {
 		return OrderItem{}, ErrInvalidProductID
@@ -32,6 +42,7 @@ func NewOrderItem(productID int64, quantity int) (OrderItem, error) {
 	}, nil
 }
 
+// Getters
 func (i OrderItem) ProductID() int64 {
 	return i.productID
 }
@@ -40,6 +51,10 @@ func (i OrderItem) Quantity() int {
 	return i.quantity
 }
 
+
+// ORDER
+
+
 type Order struct {
 	id        int64
 	items     []OrderItem
@@ -47,6 +62,7 @@ type Order struct {
 	createdAt time.Time
 }
 
+// Constructores
 func NewOrder(items []OrderItem) (*Order, error) {
 	if len(items) == 0 {
 		return nil, ErrEmptyOrder
@@ -59,36 +75,6 @@ func NewOrder(items []OrderItem) (*Order, error) {
 		status:    StatusPending,
 		createdAt: time.Now(),
 	}, nil
-}
-
-func (o *Order) Confirm() error {
-	if len(o.items) == 0 {
-		return ErrEmptyOrder
-	}
-
-	if o.status == StatusConfirmed {
-		return ErrOrderAlreadyConfirmed
-	}
-
-	o.status = StatusConfirmed
-
-	return nil
-}
-
-func (o *Order) ID() int64 {
-	return o.id
-}
-
-func (o *Order) Items() []OrderItem {
-	return append([]OrderItem(nil), o.items...)
-}
-
-func (o *Order) Status() OrderStatus {
-	return o.status
-}
-
-func (o *Order) CreatedAt() time.Time {
-	return o.createdAt
 }
 
 func RehydrateOrder(
@@ -117,6 +103,22 @@ func RehydrateOrder(
 	}, nil
 }
 
+// Operaciones de negocio
+func (o *Order) Confirm() error {
+	if len(o.items) == 0 {
+		return ErrEmptyOrder
+	}
+
+	if o.status == StatusConfirmed {
+		return ErrOrderAlreadyConfirmed
+	}
+
+	o.status = StatusConfirmed
+
+	return nil
+}
+
+// Operaciones de persistencia
 func (o *Order) AssignID(id int64) error {
 	if id <= 0 {
 		return errors.New("ID de pedido inválido")
@@ -128,4 +130,21 @@ func (o *Order) AssignID(id int64) error {
 
 	o.id = id
 	return nil
+}
+
+// Getters
+func (o *Order) ID() int64 {
+	return o.id
+}
+
+func (o *Order) Items() []OrderItem {
+	return append([]OrderItem(nil), o.items...)
+}
+
+func (o *Order) Status() OrderStatus {
+	return o.status
+}
+
+func (o *Order) CreatedAt() time.Time {
+	return o.createdAt
 }

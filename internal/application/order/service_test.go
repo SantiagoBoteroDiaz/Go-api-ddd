@@ -1,7 +1,9 @@
+
 package order
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	domain "api-ddd/internal/domain/order"
@@ -47,6 +49,19 @@ func (f *FakeOrderRepository) FindByID(
 	return o, nil
 }
 
+// Nuevo método para cumplir OrderRepository.
+func (f *FakeOrderRepository) FindAll(
+	ctx context.Context,
+) ([]*domain.Order, error) {
+	orders := make([]*domain.Order, 0, len(f.orders))
+
+	for _, o := range f.orders {
+		orders = append(orders, o)
+	}
+
+	return orders, nil
+}
+
 func (f *FakeOrderRepository) Update(
 	ctx context.Context,
 	o *domain.Order,
@@ -65,10 +80,7 @@ func TestCreateOrder(t *testing.T) {
 
 	dto := CreateOrderDTO{
 		Items: []CreateOrderItemDTO{
-			{
-				ProductID: 1,
-				Quantity:  2,
-			},
+			{ProductID: 1, Quantity: 2},
 		},
 	}
 
@@ -96,7 +108,7 @@ func TestCreateEmptyOrder(t *testing.T) {
 		CreateOrderDTO{},
 	)
 
-	if err != domain.ErrEmptyOrder {
+	if !errors.Is(err, domain.ErrEmptyOrder) {
 		t.Errorf("se esperaba ErrEmptyOrder, obtenido %v", err)
 	}
 }
@@ -127,5 +139,35 @@ func TestConfirmOrder(t *testing.T) {
 
 	if confirmed.Status() != domain.StatusConfirmed {
 		t.Errorf("se esperaba CONFIRMED, obtenido %s", confirmed.Status())
+	}
+}
+
+// Nuevo test para consultar todos los pedidos.
+func TestGetAllOrders(t *testing.T) {
+	repository := NewFakeOrderRepository()
+	service := NewOrderService(repository)
+
+	ctx := context.Background()
+
+	for i := 0; i < 3; i++ {
+		_, err := service.CreateOrder(ctx, CreateOrderDTO{
+			Items: []CreateOrderItemDTO{
+				{ProductID: int64(i + 1), Quantity: 2},
+			},
+		})
+
+		if err != nil {
+			t.Fatalf("error creando pedido: %v", err)
+		}
+	}
+
+	orders, err := service.GetAllOrders(ctx)
+
+	if err != nil {
+		t.Fatalf("error consultando pedidos: %v", err)
+	}
+
+	if len(orders) != 3 {
+		t.Errorf("se esperaban 3 pedidos, obtenidos %d", len(orders))
 	}
 }
